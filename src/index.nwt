@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Nim playground</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="/codemirror/lib/codemirror.js"></script>
+    <script src="/codemirror/mode/nim/nim.js"></script>
+    <script type="text/javascript" src="/assets/purify.min.js"></script>
+    <link rel="stylesheet" href="/codemirror/lib/codemirror.css">
+    <link rel="stylesheet" href="/codemirror/dracula.css">
+    <link href='/assets/styles.css' rel='stylesheet' type='text/css'>
+    <script src="https://unpkg.com/htmx.org@1.7.0"></script>
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Open+Sans|Titillium+Web" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/assets/logo_bw.png">
+  </head>
+  <body id="body">
+    <form>
+      <div id="ROOT">
+        <div class="headerbar">
+          <a href="https://play.nim-lang.org">
+            <img src="/assets/logo.svg"><span>Playground</span>
+          </a>
+          <a href="https://github.com/PMunch/nim-playground-frontend">
+            <span>Code on GitHub</span>
+          </a>
+        </div>
+        <div class="mainarea">
+          <div class="base column">
+            <div id="editor" class="big editor monospace">
+              <div class="optionsbar">
+                <span>Font size:
+                  <input oninput="editor.style.fontSize = event.data + 'px'" type="number" value="13" min="8" max="50" step="1">
+                </span>
+                <span>
+                  Compilation target: 
+                  <select name="compilationTarget">
+                    <option value="c">C</option>
+                    <option value="c++">C++</option>
+                  </select>
+                </span>
+                <span>
+                  Nim version: 
+                  <select name="version">
+                    {% for version in versions %}
+                      <option>{{version}}</option>
+                    {% endfor %}
+                  </select>
+                </span>
+              </div>
+            </div>
+            <div class="bar">
+              <button class="other button" hx-post="/ix" hx-target="#output > pre" hx-vals='js:{code: cm.getValue()}'>Share to ix</button>
+              <button 
+                hx-vals='js:{code: cm.getValue(), outputFormat: "html"}'
+                hx-post="/compile" 
+                hx-target="#output"
+                class="main button">
+                Run!
+                <span class="buttonhint">(ctrl-enter)</span>
+              </button>
+            </div>
+            <div id="output" class="content2">
+              <pre class="monospace"><div></div></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </body>
+  <script>
+    var editor = document.getElementById("editor")
+    var cm = CodeMirror(editor, {
+      mode: "nim",
+      value: "",
+      tabSize: 2,
+      lineNumbers: true,
+      theme: "dracula"
+    })
+  </script>
+</html>

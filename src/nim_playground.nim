@@ -1,5 +1,5 @@
 import jester, asyncdispatch, os, osproc, strutils, json, threadpool, asyncfile, asyncnet, posix, logging, nuuid, tables, httpclient, streams, uri
-import ansitohtml, ansiparse, sequtils
+import ansitohtml, ansiparse, sequtils, nimja
 
 type
   Config = object
@@ -39,8 +39,8 @@ discard existsOrCreateDir(tmpDir)
 conf.tmpDir = tmpDir.addr
 conf.logFile = logFile.addr
 
-let fl = newFileLogger(conf.logFile[], fmtStr = "$datetime $levelname ")
-fl.addHandler
+# let fl = newFileLogger(conf.logFile[], fmtStr = "$datetime $levelname ")
+# fl.addHandler
 
 proc `%`(c: char): JsonNode =
   %($c)
@@ -150,6 +150,9 @@ proc compile(code, compilationTarget: string, output: OutputFormat, requestConfi
 
 proc isDigit(x: string): bool = x.allCharsInSet(Digits)
 
+proc getVersions(): seq[string] =
+  execProcess("docker images | sed -n 's/virtual_machine *\\(v[^ ]*\\).*/\\1/p' | sort --version-sort").split("\n")[0..^2]
+
 proc isVersion(ver: string): bool =
   let parts = ver.split('.')
   if parts.len != 3:
@@ -159,35 +162,37 @@ proc isVersion(ver: string): bool =
   else:
     if not parts[0][1..^1].isDigit or not parts[1].isDigit or not parts[2].isDigit:
       return false
-  return ver in execProcess("docker images | sed -n 's/virtual_machine *\\(v[^ ]*\\).*/\\1/p' | sort --version-sort").split("\n")[0..^2]
+  return ver in getVersions()
+
+proc indexFile(): string =
+  var versions = getVersions()
+  compileTemplateFile(getScriptDir() / "index.nwt")
 
 routes:
-  get "/index.html#@extra":
-    redirect "/#" & @"extra"
-
   get "/index.html":
     redirect "/"
 
   get "/":
-    resp readFile("public/index.html")
+    resp indexFile()
 
   get "/versions":
-    resp $(%*{"versions": execProcess("docker images | sed -n 's/virtual_machine *\\(v[^ ]*\\).*/\\1/p' | sort --version-sort").split("\n")[0..^2]})
-
-  get "/tour/@url":
-      resp(Http200, [("Content-Type","text/plain")], await loadUrl(decodeUrl(@"url")))
+    resp $(%*{"versions": getVersions()})
 
   get "/ix/@ixid":
       resp(Http200, await loadIx(@"ixid"))
 
   post "/ix":
+    # if request.headers[]
     var parsedRequest: ParsedRequest
-    let parsed = parseJson(request.body)
-    if getOrDefault(parsed, "code").isNil:
-      resp(Http400)
-    parsedRequest = to(parsed, ParsedRequest)
-
-    resp(Http200, @[("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST")], createix(parsedRequest.code))
+    if request.headers.hasKey("HX-Request"):
+      parsedRequest.code = @"code"
+    else:
+      let parsed = parseJson(request.body)
+      if getOrDefault(parsed, "code").isNil:
+        resp(Http400)
+      parsedRequest = to(parsed, ParsedRequest)
+    var createdix = createix(parsedRequest.code)
+    resp(Http200, @[("HX-Push", "#" & createdix), ("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST")], createdix)
 
   post "/compile":
     var parsedRequest: ParsedRequest
