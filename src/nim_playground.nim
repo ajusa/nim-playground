@@ -39,8 +39,8 @@ discard existsOrCreateDir(tmpDir)
 conf.tmpDir = tmpDir.addr
 conf.logFile = logFile.addr
 
-# let fl = newFileLogger(conf.logFile[], fmtStr = "$datetime $levelname ")
-# fl.addHandler
+let fl = newFileLogger(conf.logFile[], fmtStr = "$datetime $levelname ")
+fl.addHandler
 
 proc `%`(c: char): JsonNode =
   %($c)
@@ -216,7 +216,11 @@ routes:
         resp(Http400)
       parsedRequest = to(parsed, ParsedRequest)
     var createdix = createix(parsedRequest.code)
-    resp(Http200, @[("HX-Push", "#" & createdix), ("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST")], createdix)
+    let ixid = createdix[13..16]
+    if request.headers.hasKey("HX-Request"):
+      resp(Http200, @[("HX-Push", "#ix=" & ixid)], "https://play.nim-lang.org/#ix=" & ixid)
+    else:
+      resp(Http200, @[("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST")], createdix)
 
   post "/compile":
     var parsedRequest: ParsedRequest
