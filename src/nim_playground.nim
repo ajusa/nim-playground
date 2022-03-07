@@ -178,8 +178,8 @@ routes:
   get "/versions":
     resp $(%*{"versions": getVersions()})
 
-  get "/ix/@ixid":
-      resp(Http200, await loadIx(@"ixid"))
+  get "/ix/?@id?":
+    resp(Http200, await loadIx(@"id"))
 
   post "/ix":
     # if request.headers[]
