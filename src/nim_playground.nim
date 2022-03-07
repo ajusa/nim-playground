@@ -168,6 +168,12 @@ proc indexFile(): string =
   var versions = getVersions()
   compileTemplateFile(getScriptDir() / "index.nwt")
 
+template respError(msg: string): untyped {.dirty.} =
+  if request.headers.hasKey("HX-Request"):
+    resp msg
+  else:
+    resp(Http400, "{\"error\":\"" & msg & "\"")
+
 routes:
   get "/index.html":
     redirect "/"
@@ -182,7 +188,6 @@ routes:
     resp(Http200, await loadIx(@"id"))
 
   post "/ix":
-    # if request.headers[]
     var parsedRequest: ParsedRequest
     if request.headers.hasKey("HX-Request"):
       parsedRequest.code = @"code"
@@ -215,20 +220,20 @@ routes:
     else:
       let parsed = parseJson(request.body)
       if getOrDefault(parsed, "code").isNil:
-        resp(Http400, "{\"error\":\"No code\"")
+        respError("No code")
       if getOrDefault(parsed, "compilationTarget").isNil:
-        resp(Http400, "{\"error\":\"No compilation target\"}")
+        respError("No compilation target")
       parsedRequest = to(parsed, ParsedRequest)
       if parsed.hasKey("outputFormat"):
         try:
           outputFormat = parseEnum[OutputFormat](parsed["outputFormat"].str.toLowerAscii)
         except:
-          resp(Http400, "{\"error\":\"Invalid output format\"}")
+          respError("Invalid output format")
       if parsed.hasKey("version"):
         version = parsed["version"].str
 
     if version != "latest" and not version.isVersion:
-      resp(Http400, "{\"error\":\"Unknown version\"}")
+      respError("Unknown version")
 
     let requestConfig = createShared(RequestConfig)
     requestConfig.tmpDir = conf.tmpDir[] & "/" & generateUUID()
