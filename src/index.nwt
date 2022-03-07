@@ -60,7 +60,7 @@
               </div>
             </div>
             <div class="bar">
-              <button class="other button" hx-post="/ix" hx-target="#output > pre" hx-vals='js:{code: cm.getValue()}'>Share to ix</button>
+              <button class="other button" hx-post="/ix" hx-target="#output" hx-vals='js:{code: cm.getValue()}'>Share to ix</button>
               <button 
                 hx-vals='js:{code: cm.getValue(), outputFormat: "html"}'
                 hx-post="/compile" 
@@ -70,9 +70,7 @@
                 <span class="buttonhint">(ctrl-enter)</span>
               </button>
             </div>
-            <div id="output" class="content2">
-              <pre class="monospace"><div></div></pre>
-            </div>
+            <div id="output" class="content2"></div>
           </div>
         </div>
       </div>

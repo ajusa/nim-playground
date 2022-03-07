@@ -1,5 +1,5 @@
 import jester, asyncdispatch, os, osproc, strutils, json, threadpool, asyncfile, asyncnet, posix, logging, nuuid, tables, httpclient, streams, uri
-import ansitohtml, ansiparse, sequtils, nimja
+import ansitohtml, ansiparse, sequtils, nimja, nimja/nimjautils
 
 type
   Config = object
@@ -168,6 +168,25 @@ proc indexFile(): string =
   var versions = getVersions()
   compileTemplateFile(getScriptDir() / "index.nwt")
 
+proc showRunOutput(compileLog, log: string): string =
+  var ranSuccessfully = log != "<br/>"
+  compileTemplateStr(
+    """
+    <details {% ?not ranSuccessfully: "open" %}>
+      <summary>debug</summary>
+      <pre class="monospace">
+        {{compileLog}}
+      </pre>
+    </details>
+    <details {% ?ranSuccessfully: "open" %}>
+      <summary>output</summary>
+      <pre class="monospace">
+        {{log}}
+      </pre>
+    </details>
+    """
+  )
+
 template respError(msg: string): untyped {.dirty.} =
   if request.headers.hasKey("HX-Request"):
     resp msg
@@ -238,8 +257,11 @@ routes:
     let requestConfig = createShared(RequestConfig)
     requestConfig.tmpDir = conf.tmpDir[] & "/" & generateUUID()
     let compileResult = await compile(parsedRequest.code, parsedRequest.compilationTarget, outputFormat, requestConfig, version)
-
-    resp(Http200, [("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST")], compileResult)
+    if request.headers.hasKey("HX-Request"):
+      var jsonResult = compileResult.parseJson()
+      resp showRunOutput(jsonResult["compileLog"].getStr(), jsonResult["log"].getStr())
+    else:
+      resp(Http200, [("Access-Control-Allow-Origin", "*"), ("Access-Control-Allow-Methods", "POST")], compileResult)
 
 
 info "Starting!"
