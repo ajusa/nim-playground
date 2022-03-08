@@ -9,7 +9,6 @@
     <meta name="htmx-config" content='{"requestClass":"is-loading"}'>
     <script src="/codemirror/lib/codemirror.js"></script>
     <script src="/codemirror/mode/nim/nim.js"></script>
-    <script type="text/javascript" src="/assets/purify.min.js"></script>
     <link rel="stylesheet" href="/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="/codemirror/dracula.css">
     <link href='/assets/styles.css' rel='stylesheet' type='text/css'>
